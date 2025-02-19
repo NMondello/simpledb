@@ -27,6 +27,7 @@ public class JoinTest extends SimpleDbTestBase {
                 COLUMNS, table2Rows, columnSpecification, t2Tuples);
         assert t2Tuples.size() == table2Rows;
 
+
         // Generate the expected results
         ArrayList<ArrayList<Integer>> expectedResults = new ArrayList<ArrayList<Integer>>();
         for (ArrayList<Integer> t1 : t1Tuples) {

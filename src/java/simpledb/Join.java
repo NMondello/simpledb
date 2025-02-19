@@ -9,6 +9,8 @@ public class Join extends Operator {
     JoinPredicate p;
     DbIterator it1;
     DbIterator it2;
+    Tuple t1;
+    boolean match = false;
     private static final long serialVersionUID = 1L;
 
     /**
@@ -100,14 +102,16 @@ public class Join extends Operator {
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
 
-        while(this.it1.hasNext()) {
-            Tuple t1 = this.it1.next();
+        while(this.it1.hasNext() || this.match) {
+            if(!this.match) {
+                this.t1 = this.it1.next();
+            }
             while(this.it2.hasNext()) {
                 Tuple t2 = this.it2.next();
-                if(this.p.filter(t1, t2)) {
+                if(this.p.filter(this.t1, t2)) {
                     int count = 0;
                     Tuple tupleMerged = new Tuple(getTupleDesc());
-                    Iterator<Field> itfield1 = t1.fields();
+                    Iterator<Field> itfield1 = this.t1.fields();
                     while(itfield1.hasNext()){
                         Field f = itfield1.next();
                         tupleMerged.setField(count, f);
@@ -119,12 +123,12 @@ public class Join extends Operator {
                         tupleMerged.setField(count, f2);
                         count++;
                     }
-                    this.it1.rewind();
-                    
+                    this.match = true;
                     return tupleMerged;
-                    //Use rewind because we are finding a match and moving it1 foward, but technically there can be another match so we have to rewind
                 }
             }
+            this.match = false;
+            this.it2.rewind();
         }
         return null;
     }
