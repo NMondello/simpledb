@@ -4,7 +4,12 @@ package simpledb;
  * Computes some aggregate over a set of IntFields.
  */
 public class IntegerAggregator implements Aggregator {
-
+    int gbfield;
+    Type gbfieldtype;
+    int afield;
+    Op what;
+    int aggregate;
+    int count;
     private static final long serialVersionUID = 1L;
 
     /**
@@ -23,7 +28,19 @@ public class IntegerAggregator implements Aggregator {
      */
 
     public IntegerAggregator(int gbfield, Type gbfieldtype, int afield, Op what) {
-        // TODO: some code goes here
+        this.what=what;
+        if (this.what.equals(Aggregator.Op.MIN)){
+            this.aggregate = Integer.MAX_VALUE;
+        }else if (this.what.equals(Aggregator.Op.MAX)){
+            this.aggregate = Integer.MIN_VALUE;
+        }else{
+            this.aggregate = 0;
+        }
+        this.gbfield=gbfield;
+        this.gbfieldtype=gbfieldtype;
+        this.afield=afield;
+        this.count = 0;
+
     }
 
     /**
@@ -34,7 +51,29 @@ public class IntegerAggregator implements Aggregator {
      *            the Tuple containing an aggregate field and a group-by field
      */
     public void mergeTupleIntoGroup(Tuple tup) {
-        // TODO: some code goes here
+        int val;
+        if (this.gbfield == NO_GROUPING){
+            val = new IntField(NO_GROUPING).getValue();
+        } else {
+            val = ((IntField)tup.getField(this.gbfield)).getValue();
+        }
+
+        if(this.what.equals(Aggregator.Op.MIN)){
+            if (this.aggregate > val){
+                this.aggregate = val;
+            }
+        } else if (this.what.equals(Aggregator.Op.MAX)){
+            if (this.aggregate < val){
+                this.aggregate = val;
+            }    
+        } else if (this.what.equals(Aggregator.Op.SUM)){
+            this.aggregate += val;
+        } else if (this.what.equals(Aggregator.Op.AVG)){
+            this.aggregate += val;
+            this.count += 1;
+        } else if (this.what.equals(Aggregator.Op.COUNT)){
+            this.count += 1;  
+        }
     }
 
     /**
@@ -46,9 +85,7 @@ public class IntegerAggregator implements Aggregator {
      *         the constructor.
      */
     public DbIterator iterator() {
-        // TODO: some code goes here
-        throw new
-        UnsupportedOperationException("please implement me for lab2");
+        
     }
 
 }
