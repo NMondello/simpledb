@@ -7,6 +7,11 @@ public class StringAggregator implements Aggregator {
 
     private static final long serialVersionUID = 1L;
 
+    int gbfield;
+    Type gbfieldtype;
+    int afield;
+    Op what;
+    int count = 0;
     /**
      * Aggregate constructor
      * @param gbfield the 0-based index of the group-by field in the tuple, or NO_GROUPING if there is no grouping
@@ -17,7 +22,15 @@ public class StringAggregator implements Aggregator {
      */
 
     public StringAggregator(int gbfield, Type gbfieldtype, int afield, Op what) {
-        // TODO: some code goes here
+        this.gbfield = gbfield;
+        this.gbfieldtype = gbfieldtype;
+        this.afield = afield;
+
+        if(what != Aggregator.Op.COUNT) {
+            throw new IllegalArgumentException();
+        }
+
+        this.what = what;
     }
 
     /**
@@ -25,7 +38,9 @@ public class StringAggregator implements Aggregator {
      * @param tup the Tuple containing an aggregate field and a group-by field
      */
     public void mergeTupleIntoGroup(Tuple tup) {
-        // TODO: some code goes here
+        if (((StringField)tup.getField(this.gbfield)).getValue() != null) {
+            count += 1;
+        }
     }
 
     /**
