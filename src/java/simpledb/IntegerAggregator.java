@@ -1,5 +1,7 @@
 package simpledb;
 
+import java.util.*;
+
 /**
  * Computes some aggregate over a set of IntFields.
  */
@@ -8,9 +10,11 @@ public class IntegerAggregator implements Aggregator {
     Type gbfieldtype;
     int afield;
     Op what;
-    int aggregate;
-    int count;
+
     private static final long serialVersionUID = 1L;
+
+    HashMap<IntField, Integer> s = new HashMap<>();
+    HashMap<IntField, Integer> c = new HashMap<>();
 
     /**
      * Aggregate constructor
@@ -29,18 +33,9 @@ public class IntegerAggregator implements Aggregator {
 
     public IntegerAggregator(int gbfield, Type gbfieldtype, int afield, Op what) {
         this.what=what;
-        if (this.what.equals(Aggregator.Op.MIN)){
-            this.aggregate = Integer.MAX_VALUE;
-        }else if (this.what.equals(Aggregator.Op.MAX)){
-            this.aggregate = Integer.MIN_VALUE;
-        }else{
-            this.aggregate = 0;
-        }
         this.gbfield=gbfield;
         this.gbfieldtype=gbfieldtype;
         this.afield=afield;
-        this.count = 0;
-
     }
 
     /**
@@ -52,27 +47,50 @@ public class IntegerAggregator implements Aggregator {
      */
     public void mergeTupleIntoGroup(Tuple tup) {
         int val;
+        IntField field = new IntField(NO_GROUPING);
         if (this.gbfield == NO_GROUPING){
             val = new IntField(NO_GROUPING).getValue();
         } else {
+            field = (IntField)tup.getField(this.gbfield);
             val = ((IntField)tup.getField(this.gbfield)).getValue();
         }
 
         if(this.what.equals(Aggregator.Op.MIN)){
-            if (this.aggregate > val){
-                this.aggregate = val;
+            if (s.containsKey(field)){
+                if (s.get(field) > val) {
+                    s.put(field, val);
+                }
+            } else {
+                s.put(field, val);
             }
         } else if (this.what.equals(Aggregator.Op.MAX)){
-            if (this.aggregate < val){
-                this.aggregate = val;
-            }    
+            if (s.containsKey(field)){
+                if (s.get(field) < val) {
+                    s.put(field, val);
+                }
+            } else {
+                s.put(field, val);
+            }
         } else if (this.what.equals(Aggregator.Op.SUM)){
-            this.aggregate += val;
+            if (s.containsKey(field)){
+                s.put(field, val+s.get(field));
+            } else {
+                s.put(field, val);
+            }
         } else if (this.what.equals(Aggregator.Op.AVG)){
-            this.aggregate += val;
-            this.count += 1;
+            if (s.containsKey(field)) {
+                s.put(field, val+s.get(field));
+                c.put(field, s.get(field) + 1);
+            } else {
+                s.put(field, val);
+                c.put(field, 1);
+            }
         } else if (this.what.equals(Aggregator.Op.COUNT)){
-            this.count += 1;  
+            if (s.containsKey(field)) {
+                s.put(field, 1+s.get(field));
+            } else {
+                s.put(field, 1);
+            }
         }
     }
 
@@ -85,7 +103,25 @@ public class IntegerAggregator implements Aggregator {
      *         the constructor.
      */
     public DbIterator iterator() {
-        
+        ArrayList<Tuple> tuples = new ArrayList<>();
+        TupleDesc td = new TupleDesc(null);
+        if(this.gbfield == NO_GROUPING) {
+            Type[] fields = {Type.INT_TYPE};
+            td = new TupleDesc(fields);
+            Tuple t = new Tuple(td);
+            t.setField(0, new IntField(s.get(new IntField(NO_GROUPING))));
+            tuples.add(t);
+        } else {
+            for (Map.Entry<IntField, Integer> entry : s.entrySet()) {
+                Type[] fields = {this.gbfieldtype, Type.INT_TYPE};
+                Integer value = entry.getValue();
+                td = new TupleDesc(fields);
+                Tuple t = new Tuple(td);
+                t.setField(0, new IntField(value));
+                tuples.add(t);
+            }
+        }
+        return new TupleIterator(td, tuples);
     }
 
 }
