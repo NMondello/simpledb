@@ -104,6 +104,7 @@ public class SeqScan implements DbIterator {
             TDItem i = it.next();
             typeAr[count] = i.fieldType;
             fieldAr[count] = this.tableAlias + "." + i.fieldName;
+            count += 1;
         }
         return new TupleDesc(typeAr, fieldAr);
     }
