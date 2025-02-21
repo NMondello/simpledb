@@ -15,8 +15,8 @@ public class IntegerAggregator implements Aggregator {
 
     String gbName;
     String agName;
-    HashMap<IntField, Integer> s = new HashMap<>();
-    HashMap<IntField, Integer> c = new HashMap<>();
+    HashMap<Field, Integer> s = new HashMap<>();
+    HashMap<Field, Integer> c = new HashMap<>();
 
     /**
      * Aggregate constructor
@@ -51,11 +51,11 @@ public class IntegerAggregator implements Aggregator {
         this.gbName = tup.getTupleDesc().getFieldName(gbfield);
         this.agName = tup.getTupleDesc().getFieldName(afield);
         int val;
-        IntField field = new IntField(NO_GROUPING);
+        Field field = new IntField(NO_GROUPING);
         if (this.gbfield == NO_GROUPING){
             val = new IntField(NO_GROUPING).getValue();
         } else {
-            field = (IntField)tup.getField(this.gbfield);
+            field = tup.getField(this.gbfield);
             val = ((IntField)tup.getField(this.afield)).getValue();
         }
 
@@ -117,7 +117,7 @@ public class IntegerAggregator implements Aggregator {
             t.setField(0, new IntField(s.get(new IntField(NO_GROUPING))));
             tuples.add(t);
         } else {
-            for (Map.Entry<IntField, Integer> entry : s.entrySet()) {
+            for (Map.Entry<Field, Integer> entry : s.entrySet()) {
                 td = new TupleDesc(new Type[]{this.gbfieldtype, Type.INT_TYPE}, new String[]{this.gbName, this.agName});
                 Tuple t = new Tuple(td);
                 Field key = entry.getKey();

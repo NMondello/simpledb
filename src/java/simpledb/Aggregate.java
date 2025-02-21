@@ -12,6 +12,7 @@ public class Aggregate extends Operator {
     private static final long serialVersionUID = 1L;
 
     DbIterator child;
+    DbIterator it;
     int afield;
     int gfield;
     Aggregator.Op aop;
@@ -102,6 +103,12 @@ public class Aggregate extends Operator {
     TransactionAbortedException {
         this.child.open();
         super.open();
+
+        while(this.child.hasNext()) {
+            this.ag.mergeTupleIntoGroup(this.child.next());
+        }
+        this.it = ag.iterator();
+        it.open();
     }
 
     /**
@@ -116,18 +123,15 @@ public class Aggregate extends Operator {
      * Hint: notice that each Aggregator class has an iterator() method
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
-        DbIterator iter = ag.iterator();
-        iter.open();
-
-        while(iter.hasNext()){
-            Tuple tup = iter.next();
-            ag.mergeTupleIntoGroup(tup);
+        while(this.it.hasNext()){
+            return this.it.next();
         }
         return null;
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
         this.child.rewind();
+        this.it.rewind();
     }
 
     /**
