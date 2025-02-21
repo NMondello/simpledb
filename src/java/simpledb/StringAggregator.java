@@ -1,5 +1,9 @@
 package simpledb;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Computes some aggregate over a set of StringFields.
  */
@@ -11,7 +15,10 @@ public class StringAggregator implements Aggregator {
     Type gbfieldtype;
     int afield;
     Op what;
-    int count = 0;
+
+    String gbName;
+    String agName;
+    HashMap<IntField, Integer> s = new HashMap<>();
     /**
      * Aggregate constructor
      * @param gbfield the 0-based index of the group-by field in the tuple, or NO_GROUPING if there is no grouping
@@ -38,8 +45,16 @@ public class StringAggregator implements Aggregator {
      * @param tup the Tuple containing an aggregate field and a group-by field
      */
     public void mergeTupleIntoGroup(Tuple tup) {
-        if (((StringField)tup.getField(this.gbfield)).getValue() != null) {
-            count += 1;
+        this.gbName = tup.getTupleDesc().getFieldName(gbfield);
+        this.agName = tup.getTupleDesc().getFieldName(afield);
+
+        IntField field = new IntField(NO_GROUPING);
+        field = (IntField) tup.getField(this.gbfield);
+        
+        if(s.containsKey(field)) {
+            s.put(field, s.get(field)+1);
+        } else {
+            s.put(field, 1);
         }
     }
 
@@ -52,8 +67,26 @@ public class StringAggregator implements Aggregator {
      *   aggregate specified in the constructor.
      */
     public DbIterator iterator() {
-        // TODO: some code goes here
-        throw new UnsupportedOperationException("please implement me for lab2");
+        ArrayList<Tuple> tuples = new ArrayList<>();
+        Type[] fields = {Type.INT_TYPE};
+        String[] fieldNames = {this.agName};
+        TupleDesc td = new TupleDesc(fields, fieldNames);
+        if(this.gbfield == NO_GROUPING) {
+            Tuple t = new Tuple(td);
+            t.setField(0, new IntField(s.get(new IntField(NO_GROUPING))));
+            tuples.add(t);
+        } else {
+            for (Map.Entry<IntField, Integer> entry : s.entrySet()) {
+                td = new TupleDesc(new Type[]{this.gbfieldtype, Type.INT_TYPE}, new String[]{this.gbName, this.agName});
+                Tuple t = new Tuple(td);
+                Field key = entry.getKey();
+                Integer value = entry.getValue();
+                t.setField(0, key);
+                t.setField(1, new IntField(value));
+                tuples.add(t);
+            }
+        }
+        return new TupleIterator(td, tuples);
     }
 
 }

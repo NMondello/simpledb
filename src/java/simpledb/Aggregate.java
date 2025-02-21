@@ -11,6 +11,13 @@ public class Aggregate extends Operator {
 
     private static final long serialVersionUID = 1L;
 
+    DbIterator child;
+    int afield;
+    int gfield;
+    Aggregator.Op aop;
+    TupleDesc td;
+    Aggregator ag;
+
     /**
      * Constructor.
      * 
@@ -30,7 +37,17 @@ public class Aggregate extends Operator {
      *            The aggregation operator to use
      */
     public Aggregate(DbIterator child, int afield, int gfield, Aggregator.Op aop) {
-        // TODO: some code goes here
+        this.child = child;
+        this.afield = afield;
+        this.gfield = gfield;
+        this.aop = aop;
+
+        this.td = child.getTupleDesc();
+        if(td.getFieldType(afield) == Type.INT_TYPE) {
+            ag = new IntegerAggregator(gfield, this.td.getFieldType(gfield), afield, aop);
+        } else if(td.getFieldType(afield) == Type.STRING_TYPE) {
+            ag = new StringAggregator(gfield, this.td.getFieldType(gfield), afield, aop);
+        }
     }
 
     /**
@@ -39,8 +56,10 @@ public class Aggregate extends Operator {
      *         {@link simpledb.Aggregator#NO_GROUPING}
      * */
     public int groupField() {
-        // TODO: some code goes here
-        return -1;
+        if(this.gfield == -1) {
+            return Aggregator.NO_GROUPING;
+        }
+        return this.gfield;
     }
 
     /**
@@ -49,16 +68,17 @@ public class Aggregate extends Operator {
      *         null;
      * */
     public String groupFieldName() {
-        // TODO: some code goes here
-        return null;
+        if(this.gfield == -1) {
+            return null;
+        }
+        return this.td.getFieldName(this.gfield);
     }
 
     /**
      * @return the aggregate field
      * */
     public int aggregateField() {
-        // TODO: some code goes here
-        return -1;
+        return afield;
     }
 
     /**
@@ -66,16 +86,14 @@ public class Aggregate extends Operator {
      *         tuples
      * */
     public String aggregateFieldName() {
-        // TODO: some code goes here
-        return null;
+        return this.td.getFieldName(this.afield);
     }
 
     /**
      * @return return the aggregate operator
      * */
     public Aggregator.Op aggregateOp() {
-        // TODO: some code goes here
-        return null;
+        return this.aop;
     }
 
     public static String nameOfAggregatorOp(Aggregator.Op aop) {
@@ -84,7 +102,8 @@ public class Aggregate extends Operator {
 
     public void open() throws NoSuchElementException, DbException,
     TransactionAbortedException {
-        // TODO: some code goes here
+        this.child.open();
+        super.open();
     }
 
     /**
