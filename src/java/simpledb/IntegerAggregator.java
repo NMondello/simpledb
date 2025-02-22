@@ -48,12 +48,14 @@ public class IntegerAggregator implements Aggregator {
      *            the Tuple containing an aggregate field and a group-by field
      */
     public void mergeTupleIntoGroup(Tuple tup) {
-        this.gbName = tup.getTupleDesc().getFieldName(gbfield);
+        if (gbfield != -1) {
+            this.gbName = tup.getTupleDesc().getFieldName(gbfield);
+        }
         this.agName = tup.getTupleDesc().getFieldName(afield);
         int val;
         Field field = new IntField(NO_GROUPING);
         if (this.gbfield == NO_GROUPING){
-            val = new IntField(NO_GROUPING).getValue();
+            val = ((IntField)tup.getField(this.afield)).getValue();
         } else {
             field = tup.getField(this.gbfield);
             val = ((IntField)tup.getField(this.afield)).getValue();
@@ -84,7 +86,7 @@ public class IntegerAggregator implements Aggregator {
             
         } else if (this.what.equals(Aggregator.Op.AVG)){
             if (s.containsKey(field)) {
-                s.put(field, val+s.get(field));
+                s.put(field, val + s.get(field));
                 c.put(field, c.get(field) + 1);
             } else {
                 s.put(field, val);
@@ -114,7 +116,11 @@ public class IntegerAggregator implements Aggregator {
         TupleDesc td = new TupleDesc(fields, fieldNames);
         if(this.gbfield == NO_GROUPING) {
             Tuple t = new Tuple(td);
-            t.setField(0, new IntField(s.get(new IntField(NO_GROUPING))));
+            if(this.what == Aggregator.Op.AVG) {
+                t.setField(0, new IntField(s.get(new IntField(NO_GROUPING))/c.get(new IntField(NO_GROUPING))));
+            } else {
+                t.setField(0, new IntField(s.get(new IntField(NO_GROUPING))));
+            }
             tuples.add(t);
         } else {
             for (Map.Entry<Field, Integer> entry : s.entrySet()) {

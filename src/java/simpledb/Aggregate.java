@@ -37,15 +37,21 @@ public class Aggregate extends Operator {
      *            The aggregation operator to use
      */
     public Aggregate(DbIterator child, int afield, int gfield, Aggregator.Op aop) {
+        Type gfieldType = null;
+
         this.child = child;
-        this.afield = afield;
+        this.afield = afield;   
         this.gfield = gfield;
         this.aop = aop;
 
+        if(gfield != -1) {
+            gfieldType = child.getTupleDesc().getFieldType(gfield);
+        }
+        
         if(child.getTupleDesc().getFieldType(afield) == Type.INT_TYPE) {
-            this.ag = new IntegerAggregator(gfield, child.getTupleDesc().getFieldType(gfield), afield, aop);
+            this.ag = new IntegerAggregator(gfield, gfieldType, afield, aop);
         } else if(child.getTupleDesc().getFieldType(afield) == Type.STRING_TYPE) {
-            this.ag = new StringAggregator(gfield, child.getTupleDesc().getFieldType(gfield), afield, aop);
+            this.ag = new StringAggregator(gfield, gfieldType, afield, aop);
         }
     }
 

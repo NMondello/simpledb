@@ -45,7 +45,9 @@ public class StringAggregator implements Aggregator {
      * @param tup the Tuple containing an aggregate field and a group-by field
      */
     public void mergeTupleIntoGroup(Tuple tup) {
-        this.gbName = tup.getTupleDesc().getFieldName(gbfield);
+        if (gbfield != -1) {
+            this.gbName = tup.getTupleDesc().getFieldName(gbfield);
+        }
         this.agName = tup.getTupleDesc().getFieldName(afield);
 
         Field field = new IntField(NO_GROUPING);
