@@ -241,7 +241,6 @@ public class HeapPage implements Page {
      * @param t The tuple to delete
      */
     public void deleteTuple(Tuple t) throws DbException {
-        System.out.println("BEFORE DEL:" + getNumEmptySlots());
         RecordId rid = t.getRecordId();
         if(isSlotUsed(rid.getTupleNumber()) && rid.getPageId() == this.pid){
             markSlotUsed(rid.getTupleNumber(), false);
@@ -249,7 +248,6 @@ public class HeapPage implements Page {
         }else{
             throw new DbException("Tuple is not on this page");
         }
-        System.out.println("AFTER DEL:" + getNumEmptySlots());
     }
 
     /**
@@ -260,14 +258,21 @@ public class HeapPage implements Page {
      * @param t The tuple to add.
      */
     public void insertTuple(Tuple t) throws DbException {
-        System.out.println("BEFORE INSERT: " + getNumEmptySlots());
-        System.out.println("tupleNum: " + t.getRecordId().getTupleNumber());
+        int slot = 0;
         if(getNumEmptySlots() == 0 || !t.getTupleDesc().equals(this.td)){
             throw new DbException("Page full or tuple desc mismatch");
         }
-        markSlotUsed(t.getRecordId().getTupleNumber(), true);
-        this.tuples[t.getRecordId().getTupleNumber()] = t;
-        System.out.println("AFTER INSERT: " + getNumEmptySlots());
+        for (int i = 0; i < this.header.length; i++) {
+            for(int j = 0; j < 8; j++) {
+                if((this.header[i] & (1 << j)) == 0) {
+                    slot = (i * 8) + j;
+                    markSlotUsed(slot, true);
+                    t.setRecordId(new RecordId(this.pid, slot));
+                    this.tuples[slot] = t;
+                    return;
+                }
+            }
+        }
     }
 
     /**
@@ -330,14 +335,11 @@ public class HeapPage implements Page {
      */
     private void markSlotUsed(int i, boolean value) {
         int b = (int) Math.floor(i/8);
-        System.out.println("Before Marking: " + String.format("%8s", Integer.toBinaryString(this.header[b] & 0xFF)).replace(' ', '0'));
         if(value){
             this.header[b] |= (1 << (i % 8));
         }else{
             this.header[b] &=  ~(1 << (i % 8));
         }
-        
-        System.out.println("After Marking: " + String.format("%8s", Integer.toBinaryString(this.header[b] & 0xFF)).replace(' ', '0'));
     }
 
     /**
