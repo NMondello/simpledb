@@ -105,6 +105,7 @@ public class HeapFile implements DbFile {
                 if(page.getNumEmptySlots() == 0) {
                     page_status.set(i, 1);
                 }
+                this.writePage(page);
                 ArrayList<Page> p = new ArrayList<>();
                 p.add(page);
                 return p;

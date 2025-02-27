@@ -1,7 +1,7 @@
 package simpledb;
 
 import java.io.*;
-
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -82,6 +82,7 @@ public class BufferPool {
             }
             Catalog catalog = Database.getCatalog();
             int tableId = pid.getTableId();
+            System.out.println("pid coming from disk: " + pid.getPageNumber());
             Page newPage = catalog.getDatabaseFile(tableId).readPage(pid);
             this.mp.put(pid, newPage);
             this.bufferSize += 1;
@@ -156,10 +157,11 @@ public class BufferPool {
     public void insertTuple(TransactionId tid, int tableId, Tuple t)
             throws DbException, IOException, TransactionAbortedException {
                 HeapFile file = (HeapFile) Database.getCatalog().getDatabaseFile(tableId);
-                file.insertTuple(tid, t);
-                HeapPage page = (HeapPage) this.getPage(tid, t.getRecordId().getPageId(), Permissions.READ_WRITE);
-                page.markDirty(true, tid);
-                this.mp.put(t.getRecordId().getPageId(), page);
+                ArrayList<Page> pages = file.insertTuple(tid, t);
+                for (Page page : pages) {
+                    page.markDirty(true, tid);
+                    this.mp.put(t.getRecordId().getPageId(), page);
+                }
     }
 
     /**
@@ -180,10 +182,11 @@ public class BufferPool {
                 HeapPageId id = (HeapPageId) t.getRecordId().getPageId();
                 
             HeapFile file = (HeapFile) Database.getCatalog().getDatabaseFile(id.getTableId());
-            file.deleteTuple(tid, t);
-            HeapPage page = (HeapPage) this.getPage(tid, t.getRecordId().getPageId(), Permissions.READ_WRITE);
-            page.markDirty(true, tid);
-            this.mp.put(t.getRecordId().getPageId(), page);
+            ArrayList<Page> pages = file.deleteTuple(tid, t);
+            for (Page page : pages) {
+                page.markDirty(true, tid);
+                this.mp.put(t.getRecordId().getPageId(), page);
+            }
     }
 
     /**
