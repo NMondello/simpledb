@@ -23,8 +23,6 @@ public class InsertTest extends SimpleDbTestBase {
         // Insert source into destination
         TransactionId tid = new TransactionId();
 
-
-
         SeqScan ss = new SeqScan(tid, source.getId(), "");
         Insert insOp = new Insert(tid, ss, destination.getId());
 
@@ -32,12 +30,7 @@ public class InsertTest extends SimpleDbTestBase {
         // DbFileIterator it1 = destination.iterator(tid);
         // it1.open(); // this needed, otherwise theres an override
 
-        // while(it1.hasNext()) {
-        //     System.out.println("STARTING VALUES: " + it1.next());
-        // }
-
-//        Query q = new Query(insOp, tid);
-
+        // Query q = new Query(insOp, tid);
         // overriding if the iterator is not open
         insOp.open();
         boolean hasResult = false;
@@ -51,8 +44,6 @@ public class InsertTest extends SimpleDbTestBase {
         assertTrue(hasResult);
         insOp.close();
 
-
-        
         // DbFileIterator it2 = destination.iterator(tid);
         // it2.open();
 
