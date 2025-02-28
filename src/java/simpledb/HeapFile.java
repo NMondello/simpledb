@@ -29,6 +29,7 @@ public class HeapFile implements DbFile {
         this.f = f;
         this.td = td;
         this.id = f.getAbsoluteFile().hashCode();
+        this.page_status.add(0);
     }
 
     /**
