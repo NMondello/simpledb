@@ -82,7 +82,6 @@ public class BufferPool {
             }
             Catalog catalog = Database.getCatalog();
             int tableId = pid.getTableId();
-            System.out.println("pid coming from disk: " + pid.getPageNumber());
             Page newPage = catalog.getDatabaseFile(tableId).readPage(pid);
             this.mp.put(pid, newPage);
             this.bufferSize += 1;

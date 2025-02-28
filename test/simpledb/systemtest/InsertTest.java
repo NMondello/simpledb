@@ -27,11 +27,7 @@ public class InsertTest extends SimpleDbTestBase {
         Insert insOp = new Insert(tid, ss, destination.getId());
 
 
-        // DbFileIterator it1 = destination.iterator(tid);
-        // it1.open(); // this needed, otherwise theres an override
-
         // Query q = new Query(insOp, tid);
-        // overriding if the iterator is not open
         insOp.open();
         boolean hasResult = false;
         while (insOp.hasNext()) {
@@ -43,13 +39,6 @@ public class InsertTest extends SimpleDbTestBase {
         }
         assertTrue(hasResult);
         insOp.close();
-
-        // DbFileIterator it2 = destination.iterator(tid);
-        // it2.open();
-
-        // while(it2.hasNext()) {
-        //     System.out.println("ENDING VALUES: " + it2.next());
-        // }
 
         // As part of the same transaction, scan the table
         sourceTuples.addAll(destinationTuples);
@@ -64,20 +53,20 @@ public class InsertTest extends SimpleDbTestBase {
 
     }
 
-    // @Test public void testEmptyToEmpty()
-    //         throws IOException, DbException, TransactionAbortedException {
-    //     validateInsert(3, 0, 0);
-    // }
+    @Test public void testEmptyToEmpty()
+            throws IOException, DbException, TransactionAbortedException {
+        validateInsert(3, 0, 0);
+    }
 
-    // @Test public void testEmptyToOne()
-    //         throws IOException, DbException, TransactionAbortedException {
-    //     validateInsert(8, 0, 1);
-    // }
+    @Test public void testEmptyToOne()
+            throws IOException, DbException, TransactionAbortedException {
+        validateInsert(8, 0, 1);
+    }
 
-    // @Test public void testOneToEmpty()
-    //         throws IOException, DbException, TransactionAbortedException {
-    //     validateInsert(3, 1, 0);
-    // }
+    @Test public void testOneToEmpty()
+            throws IOException, DbException, TransactionAbortedException {
+        validateInsert(3, 1, 0);
+    }
 
     @Test public void testOneToOne()
             throws IOException, DbException, TransactionAbortedException {

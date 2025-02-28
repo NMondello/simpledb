@@ -264,13 +264,10 @@ public class HeapPage implements Page {
         for (int i = 0; i < this.header.length; i++) {
             for(int j = 0; j < 8; j++) {
                 if((this.header[i] & (1 << j)) == 0) {
-                    System.out.println("this.header = " + String.format("%8s", Integer.toBinaryString(this.header[i] & 0xFF)).replace(' ', '0'));
-                    System.out.println("found empty slot, I and J are " + i + ", " + j);
                     slot = (i * 8) + j;
                     markSlotUsed(slot, true);
                     t.setRecordId(new RecordId(this.pid, slot));
                     this.tuples[slot] = t;
-                    System.out.println("inserting tuple into slot: " + slot);
                     return;
                 }
             }
