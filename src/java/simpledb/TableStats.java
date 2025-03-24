@@ -14,6 +14,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class TableStats {
     // Note: the constructor you will implement is below these static methods
 
+    HeapFile f;
+    TupleDesc td;
+    ConcurrentHashMap<Integer, Object> hMap;
+    int numTuples;
+    int ioCostPerPage;
+
     private static final ConcurrentHashMap<String, TableStats> statsMap = new ConcurrentHashMap<String, TableStats>();
 
     static final int IOCOSTPERPAGE = 1000;
@@ -87,7 +93,94 @@ public class TableStats {
         // in a single scan of the table.
         // Note: See project description for hint on using a Transaction
 
-        // TODO: some code goes here
+        this.ioCostPerPage = ioCostPerPage;
+        this.f = (HeapFile) Database.getCatalog().getDatabaseFile(tableid);
+        this.td = this.f.getTupleDesc();
+        int numFields = this.td.numFields();
+        int numTuples = 0;
+
+
+        ConcurrentHashMap<Integer, Integer> minMap = new ConcurrentHashMap<>();
+        ConcurrentHashMap<Integer, Integer> maxMap = new ConcurrentHashMap<>();
+        this.hMap = new ConcurrentHashMap<>();
+
+        // Loop through all values and get min and max for each one
+        try {
+            Transaction tr = new Transaction();
+            tr.start();
+            SeqScan s =  new SeqScan(tr.getId(), tableid, "t");
+
+            s.open();
+
+            while(s.hasNext()) {
+                ++numTuples;
+                int index = 0;
+                Tuple t = s.next();
+                Iterator<Field> fieldIterator = t.fields();
+                while (fieldIterator.hasNext()) {
+                    Field ogField = fieldIterator.next();
+                    if(ogField.getType() == Type.INT_TYPE) {
+                        IntField field = (IntField)(ogField);
+                        int value = field.getValue();
+                        if (value < minMap.getOrDefault(index, Integer.MAX_VALUE)) {
+                            minMap.put(index, value);
+                        }
+                        if (value > maxMap.getOrDefault(index, Integer.MIN_VALUE)) {
+                            maxMap.put(index, value);
+                        }
+                    } else {
+                        minMap.put(index, 0);
+                        maxMap.put(index, 0);
+                    }
+                    ++index;
+                }
+            }
+            
+            tr.commit();
+
+            for(int i = 0; i < numFields; ++i) {
+                if(this.td.getFieldType(i) == Type.INT_TYPE) {
+                    // IntHisto
+                    this.hMap.put(i, new IntHistogram(NUM_HIST_BINS, minMap.get(i), maxMap.get(i)));
+                } else {
+                    // StringHisto
+                    this.hMap.put(i, new StringHistogram(NUM_HIST_BINS));
+                }
+            }
+
+            Transaction tr2 = new Transaction();
+            tr2.start();
+
+            SeqScan s2 = new SeqScan(tr2.getId(), tableid, "t");
+            s2.open();
+
+            while(s2.hasNext()) {
+                int index = 0;
+                Tuple t = s2.next();
+                Iterator<Field> fieldIterator = t.fields();
+                while (fieldIterator.hasNext()) {
+                    Field ogField = fieldIterator.next();
+                    if(ogField.getType() == Type.INT_TYPE) {
+                        IntField field = (IntField)(ogField);
+                        int value = field.getValue();
+                        IntHistogram hist = (IntHistogram) this.hMap.get(index);
+                        hist.addValue(value);
+                    } else { // StringField
+                        StringField field = (StringField)(ogField);
+                        String value = field.getValue();
+                        StringHistogram hist = (StringHistogram) this.hMap.get(index);
+                        hist.addValue(value);
+                    }
+                ++index;
+                }
+            }
+
+            tr2.commit();
+            this.numTuples = numTuples;
+
+        } catch(Exception e) {
+            e.printStackTrace();
+        }        
     }
 
     /**
@@ -103,8 +196,8 @@ public class TableStats {
      * @return The estimated cost of scanning the table.
      */
     public double estimateScanCost() {
-        // TODO: some code goes here
-        return 0;
+        int pages = this.f.numPages();
+        return pages * ioCostPerPage;
     }
 
     /**
@@ -117,8 +210,7 @@ public class TableStats {
      *         selectivityFactor
      */
     public int estimateTableCardinality(double selectivityFactor) {
-        // TODO: some code goes here
-        return 0;
+        return (int) (this.numTuples * selectivityFactor);
     }
 
     /**
@@ -152,16 +244,22 @@ public class TableStats {
      *         predicate
      */
     public double estimateSelectivity(int field, Predicate.Op op, Field constant) {
-        // TODO: some code goes here
-        return 1.0;
+        if(constant.getType() == Type.INT_TYPE) {
+            IntHistogram hist = (IntHistogram) this.hMap.get(field);
+            IntField c = (IntField) constant;
+            return hist.estimateSelectivity(op, c.getValue());
+        } else {
+            StringHistogram hist = (StringHistogram) this.hMap.get(field);
+            StringField c = (StringField) constant;
+            return hist.estimateSelectivity(op, c.getValue());
+        }
     }
 
     /**
      * return the total number of tuples in this table
      * */
     public int totalTuples() {
-        // TODO: some code goes here
-        return 0;
+        return this.numTuples;
     }
 
 }

@@ -2,7 +2,6 @@ package simpledb;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
 /** A class to represent a fixed-width histogram over a single integer-based field.
  */
 public class IntHistogram {
@@ -11,7 +10,7 @@ public class IntHistogram {
     int numBuckets;
     int bucketWidth;
     ConcurrentHashMap<Integer,Integer> bucketsMap;
-    int numTuples = 0;
+    int numTuples;
 
 
     /**
@@ -38,6 +37,7 @@ public class IntHistogram {
         this.numBuckets = buckets;
         this.min = min;
         this.max = max;
+        this.numTuples = 0;
         this.bucketWidth = (int)Math.ceil((max - min + 1) / buckets);
         if(this.bucketWidth == 0) {
             this.bucketWidth = 1;
@@ -73,8 +73,12 @@ public class IntHistogram {
     public double estimateSelectivity(Predicate.Op op, int v) {
         int amountLastBucket = this.bucketWidth;
     	if(op.equals(Predicate.Op.LIKE) || op.equals(Predicate.Op.EQUALS) || op.equals(Predicate.Op.NOT_EQUALS)){
-            if(v < this.min || v > this.max) {
-                return -1.0;
+            if((v < this.min || v > this.max)) {
+                if(op.equals(Predicate.Op.NOT_EQUALS)) {
+                    return 1.0;
+                } else {
+                    return 0.0;
+                }
             }
             int bucketIndex = (int)Math.floor(((v - min) / this.bucketWidth)) + 1;
             if(bucketIndex >= this.numBuckets){
@@ -82,9 +86,9 @@ public class IntHistogram {
                 amountLastBucket = this.max - (this.bucketWidth * (this.numBuckets - 1));
             }
             double selectivity = (double)(this.bucketsMap.get(bucketIndex)/amountLastBucket) / this.numTuples;
-            
+
             if(op.equals(Predicate.Op.NOT_EQUALS)) {
-                return 1 - selectivity;
+                return 1.0 - selectivity;
             }
 
             return selectivity;
