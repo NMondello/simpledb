@@ -107,10 +107,9 @@ public class JoinOptimizer {
             // You do not need to implement support for these for Lab 3.
             return card1 + cost1 + cost2;
         } else {
-            // Insert your code here.
             // HINT: You likely only need to use the variable "j" if you implemented
             // a join algorithm that's more complicated than a basic nested-loops join.
-            return -1.0;
+            return cost1 + (card1 * cost2) + (card1 * card2);
         }
     }
 
@@ -155,7 +154,24 @@ public class JoinOptimizer {
             boolean t2pkey, Map<String, TableStats> stats,
             Map<String, Integer> tableAliasToId) {
         long card = 1;
-        // TODO: some code goes here
+        if(joinOp.equals(Predicate.Op.EQUALS) || joinOp.equals(Predicate.Op.LIKE) || joinOp.equals(Predicate.Op.NOT_EQUALS)){
+            if(t1pkey && !t2pkey){
+                card = card2;
+            }else if (!t1pkey && t2pkey){
+                card = card1;
+            }else if(!t1pkey && !t2pkey) {
+                card = Math.max(card1, card2);
+            }else{
+                card = Math.min(card1, card2);
+            }
+            if (joinOp.equals(Predicate.Op.NOT_EQUALS)){
+                card = (card1*card2) - card;
+            }
+        } else {
+            System.out.println("touch");
+            double frac = .3;
+            card = card1 * card2 * (long)frac;
+        }
         return card <= 0 ? 1 : card;
     }
 
@@ -218,11 +234,31 @@ public class JoinOptimizer {
         //Not necessary for labs 1--2
         // See the Lab writeup for some hints as to how this function
         // should work.
+        PlanCache cache = new PlanCache();
+        for(int i = 1; i <= this.joins.size(); i++){
+            Set<Set<LogicalJoinNode>> subset = enumerateSubsets(this.joins, i);
+            for (Set<LogicalJoinNode> s : subset){
+                CostCard bestPlan = new CostCard();
+                bestPlan.cost = Double.MAX_VALUE;
+                Set<Set<LogicalJoinNode>> sPrimeSubset = enumerateSubsets(new Vector<>(s), i-1);
+                for(Set<LogicalJoinNode> sPrime: sPrimeSubset){
+                    Set<LogicalJoinNode> diff = new HashSet<>(s);
+                    diff.removeAll(sPrime);
+                    LogicalJoinNode nodeToRemove = diff.iterator().next();
+                    CostCard subPlan = computeCostAndCardOfSubplan(stats, filterSelectivities, nodeToRemove, s, bestPlan.cost, cache);
+                    if(subPlan == null){
+                        continue;
+                    }
+                    if(subPlan.cost < bestPlan.cost){
+                        bestPlan = subPlan;
+                    }
+                }
+                cache.addPlan(s, bestPlan.cost, bestPlan.card, bestPlan.plan);
+            }
 
-        // TODO: some code goes here
-        //Replace the following
-        return joins;
-
+        }
+            System.out.println(cache.getOrder(new HashSet<>(this.joins)));
+            return cache.getOrder(new HashSet<>(this.joins));
     }
 
     // ===================== Private Methods =================================
