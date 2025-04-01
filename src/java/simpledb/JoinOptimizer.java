@@ -168,9 +168,8 @@ public class JoinOptimizer {
                 card = (card1*card2) - card;
             }
         } else {
-            System.out.println("touch");
             double frac = .3;
-            card = card1 * card2 * (long)frac;
+            card = (long)((card1 * card2) * frac);
         }
         return card <= 0 ? 1 : card;
     }
@@ -257,7 +256,6 @@ public class JoinOptimizer {
             }
 
         }
-            System.out.println(cache.getOrder(new HashSet<>(this.joins)));
             return cache.getOrder(new HashSet<>(this.joins));
     }
 
