@@ -256,6 +256,9 @@ public class JoinOptimizer {
             }
 
         }
+            if(explain){
+                printJoins(this.joins, cache, stats, filterSelectivities);
+            }
             return cache.getOrder(new HashSet<>(this.joins));
     }
 

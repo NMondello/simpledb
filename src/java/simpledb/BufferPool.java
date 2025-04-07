@@ -19,6 +19,7 @@ public class BufferPool {
     ConcurrentHashMap<PageId, Page> mp;
     ConcurrentHashMap<PageId, Integer> e;
     Integer bufferSize;
+    LockManager lockmgr;
     /** Bytes per page, including header. */
     private static final int PAGE_SIZE = 4096;
 
@@ -42,6 +43,7 @@ public class BufferPool {
         this.mp = new ConcurrentHashMap<>();
         this.e = new ConcurrentHashMap<>();
         this.bufferSize = numPages;
+        this.lockmgr = new LockManager();
     }
 
     public static int getPageSize() {
@@ -78,6 +80,11 @@ public class BufferPool {
      */
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
             throws TransactionAbortedException, DbException {
+        try {
+            lockmgr.acquireLock(tid, pid, perm);
+        } catch (DeadlockException e){
+            throw new TransactionAbortedException();
+        }
         if(this.mp.get(pid) == null){
             if (mp.size() >= this.bufferSize){
                 evictPage();
@@ -102,9 +109,7 @@ public class BufferPool {
      * @param pid the ID of the page to unlock
      */
     public  void releasePage(TransactionId tid, PageId pid) {
-        // TODO: some code goes here
-        // not necessary for labs 1--3
-        // lockmgr.releaseLock(tid,pid); // Uncomment for Lab 4
+        lockmgr.releaseLock(tid,pid); // Uncomment for Lab 4
     }
 
     /**
@@ -118,10 +123,7 @@ public class BufferPool {
 
     /** Return true if the specified transaction has a lock on the specified page */
     public boolean holdsLock(TransactionId tid, PageId p) {
-        // TODO: some code goes here
-        // not necessary for labs 1--3
-        //return lockmgr.holdsLock(tid, p); // Uncomment for Lab 4 (and remove "return false");
-        return false;
+        return lockmgr.holdsLock(tid, p); // Uncomment for Lab 4 (and remove "return false");
     }
 
     /**
