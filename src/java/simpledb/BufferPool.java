@@ -2,6 +2,9 @@ package simpledb;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -135,11 +138,32 @@ public class BufferPool {
      */
     public void transactionComplete(TransactionId tid, boolean commit)
             throws IOException {
-        // TODO: some code goes here
-        // not necessary for labs 1--3
+        if(commit){
+            for (Map.Entry<PageId, Page> entry : mp.entrySet()) {
+                TransactionId newTid = entry.getValue().isDirty(); 
+                if (!tid.equals(newTid)){
+                    continue;
+                } else {
+                    flushPage(entry.getKey());
+                }
+            }
+        } else{
+            Set<PageId> set = new HashSet<>();
+            for (Map.Entry<PageId, Page> entry : mp.entrySet()) {
+                TransactionId newTid = entry.getValue().isDirty(); 
+                if (!tid.equals(newTid)){
+                    continue;
+                } else {
+                    set.add(entry.getKey());
+                }
+            }
+            for(PageId pid : set){
+                mp.remove(pid);
+            }
+        }
 
         // After dealing with commit/abort actions, ask lock manager to release locks
-        // lockmgr.releaseAllLocks(tid); // Uncomment for Lab 4
+        lockmgr.releaseAllLocks(tid); // Uncomment for Lab 4
 
     }
 
@@ -253,10 +277,14 @@ public class BufferPool {
         try {
             PageId pageToEvict = null;
             for (PageId key : mp.keySet()) {
-                if(e.get(key) > max) {
+                TransactionId tid = mp.get(key).isDirty();
+                if(e.get(key) > max && tid == null) {
                     pageToEvict = key;
                     max = e.get(key);
                 }
+            }
+            if (pageToEvict == null){
+                throw new DbException("All pages are dirty");
             }
             mp.remove(pageToEvict);
             e.remove(pageToEvict);

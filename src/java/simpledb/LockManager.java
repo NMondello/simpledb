@@ -1,6 +1,7 @@
 package simpledb;
 
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.xml.crypto.Data;
@@ -39,7 +40,8 @@ public class LockManager {
      */
     public boolean acquireLock(TransactionId tid, PageId pid, Permissions perm)
             throws DeadlockException {
-
+        
+        int num_sleeps = 0;
         while(!lock(tid, pid, perm)) { // while xact doesn't have the lock, try to get the lock
 
             synchronized(this) {
@@ -49,7 +51,11 @@ public class LockManager {
 
             try {
                 // xact couldn't get lock, wait a bit (via sleep) before trying again
-                Thread.sleep(LOCK_WAIT); 
+                if(num_sleeps == 10){
+                    throw new DeadlockException();
+                }
+                Thread.sleep(LOCK_WAIT);
+                num_sleeps += 1; 
             } catch (InterruptedException e) { // don't need to do anything 
             }
 
@@ -67,7 +73,22 @@ public class LockManager {
      * This method is used by BufferPool.transactionComplete()
      */
     public synchronized void releaseAllLocks(TransactionId tid) {
-        // TODO: some code goes here
+        ArrayList<PageId> pages = tr2pg.getOrDefault(tid, null);
+        if (pages == null) {
+            return;
+        }
+        tr2pg.remove(tid);
+        for (PageId page : pages) {
+            ArrayList<TransactionId> tids = pid2tr.get(page);
+            if(tids == null || tids.size() <= 1)  {
+                pid2tr.remove(page);
+                pg2perm.remove(page);
+            } else {
+                tids.remove(tid);
+                pid2tr.put(page, tids);
+            }
+        }
+
     }
 
     /** Return true if the specified transaction has a lock on the specified page */

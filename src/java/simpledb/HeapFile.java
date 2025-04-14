@@ -102,6 +102,10 @@ public class HeapFile implements DbFile {
                 // page has free slot
                 HeapPageId id = new HeapPageId(this.getId(), i);
                 HeapPage page = (HeapPage) Database.getBufferPool().getPage(tid, id, Permissions.READ_WRITE);
+                if(page.getNumEmptySlots() == 0) {
+                    page_status.set(i, 1);
+                    continue;
+                }
                 page.insertTuple(t);
                 if(page.getNumEmptySlots() == 0) {
                     page_status.set(i, 1);
